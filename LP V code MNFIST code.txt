@@ -1,27 +1,34 @@
+import pandas as pd
+import numpy as np
 import tensorflow as tf
 from tensorflow.keras import layers, models
-import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
 
-# 1. Load the Fashion MNIST dataset
-fashion_mnist = tf.keras.datasets.fashion_mnist
+# 1. Load the Fashion MNIST dataset from CSV (Assuming CSV format)
+# Here, you would replace the path with the actual location of the CSV file
+# We assume that the first column is the label, and the remaining 784 columns are pixel values
+data = pd.read_csv('fashion_mnist_train.csv')  # Adjust this to your file path
 
-# Split the data into training and test sets
-(x_train, y_train), (x_test, y_test) = fashion_mnist.load_data()
+# 2. Preprocess the Data
+# Separate features (images) and labels
+X = data.iloc[:, 1:].values  # All columns except the first (label)
+y = data.iloc[:, 0].values  # The first column is the label
 
-# 2. Preprocess the data
-# Normalize pixel values to be between 0 and 1 by dividing by 255
-x_train, x_test = x_train / 255.0, x_test / 255.0
+# Normalize the data to scale the pixel values to [0, 1]
+X = X / 255.0
 
-# Reshape data to add a channel dimension (28x28 images, 1 channel for grayscale)
-x_train = x_train.reshape(-1, 28, 28, 1)
-x_test = x_test.reshape(-1, 28, 28, 1)
+# Reshape the data to (n_samples, 28, 28, 1) to match the CNN input requirements
+X = X.reshape(-1, 28, 28, 1)
 
-# Convert the labels to one-hot encoding
-y_train = tf.keras.utils.to_categorical(y_train, 10)
-y_test = tf.keras.utils.to_categorical(y_test, 10)
+# One-hot encode the labels (categories)
+y = tf.keras.utils.to_categorical(y, 10)
 
-# 3. Define the Convolutional Neural Network (CNN) model
+# 3. Split the dataset into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 4. Define the Convolutional Neural Network (CNN) Model
 model = models.Sequential([
     layers.Conv2D(32, (3, 3), activation='relu', input_shape=(28, 28, 1)),
     layers.MaxPooling2D((2, 2)),
@@ -30,35 +37,33 @@ model = models.Sequential([
     layers.Conv2D(64, (3, 3), activation='relu'),
     layers.Flatten(),
     layers.Dense(64, activation='relu'),
-    layers.Dense(10, activation='softmax')  # Output layer with 10 units for 10 classes
+    layers.Dense(10, activation='softmax')  # Output layer for 10 classes
 ])
 
-# 4. Compile the model
-model.compile(optimizer='adam',
-              loss='categorical_crossentropy',  # For multi-class classification
-              metrics=['accuracy'])
+# 5. Compile the model
+model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
-# 5. Train the model
-history = model.fit(x_train, y_train, epochs=10, batch_size=64, validation_data=(x_test, y_test))
+# 6. Train the model
+history = model.fit(X_train, y_train, epochs=10, batch_size=64, validation_data=(X_test, y_test))
 
-# 6. Evaluate the model on the test set
-test_loss, test_acc = model.evaluate(x_test, y_test)
+# 7. Evaluate the model on the test set
+test_loss, test_acc = model.evaluate(X_test, y_test)
 print(f"Test accuracy: {test_acc * 100:.2f}%")
 
-# 7. Predict on the test data
-y_pred = model.predict(x_test)
+# 8. Predict on the test data
+y_pred = model.predict(X_test)
 
-# 8. Visualize the predictions
+# 9. Visualize the predictions
 plt.figure(figsize=(12, 8))
 for i in range(10):
     plt.subplot(2, 5, i + 1)
-    plt.imshow(x_test[i].reshape(28, 28), cmap='gray')
+    plt.imshow(X_test[i].reshape(28, 28), cmap='gray')
     plt.title(f"Pred: {y_pred[i].argmax()}, True: {y_test[i].argmax()}")
     plt.axis('off')
 
 plt.show()
 
-# 9. Print the training and validation loss/accuracy
+# 10. Print the training and validation loss/accuracy
 plt.figure(figsize=(12, 5))
 
 # Accuracy plot
